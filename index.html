@@ -1662,7 +1662,6 @@ const SCALES = {
 // blow bends above blow, hole number, draw, and draw bends below.
 // Each bend row maps to an index in hole.blowBends or hole.drawBends arrays.
 const ROW_DEFS = [
-  { label: 'Over',     actionKey: 'overbend',  isBlow: null,  isOverbend: true              },
   { label: 'Blow ♭♭',  actionKey: 'blowBend2', isBlow: true,  isBend: true,  bendIdx: 1     },
   { label: 'Blow ♭',   actionKey: 'blowBend1', isBlow: true,  isBend: true,  bendIdx: 0     },
   { label: 'Blow',     actionKey: 'blow',      isBlow: true,  isBend: false                 },
@@ -1670,7 +1669,6 @@ const ROW_DEFS = [
   { label: 'Draw',     actionKey: 'draw',      isBlow: false, isBend: false                 },
   { label: 'Draw ♭',   actionKey: 'drawBend1', isBlow: false, isBend: true,  bendIdx: 0     },
   { label: 'Draw ♭♭',  actionKey: 'drawBend2', isBlow: false, isBend: true,  bendIdx: 1     },
-  { label: 'Draw ♭♭♭', actionKey: 'drawBend3', isBlow: false, isBend: true,  bendIdx: 2     },
 ];
 
 function getCellNote(hole, row) {

@@ -1592,17 +1592,22 @@ const NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 // Overblows/overdraws are a much harder technique than natural bends, so they
 // get a different visual treatment in the grid (red rim vs gold rim).
 const RICHTER_C = [
+  // Overblows: only the "standard four" holes (1, 4, 5, 6) are musically
+  // useful. Holes 2 and 3 overblows are theoretically possible but produce
+  // notes already available elsewhere on the harp, so they're omitted.
   { hole: 1,  blow: 'C4', draw: 'D4', drawBends: ['C#4'],                 blowBends: [],            overblow: 'D#4',  overdraw: null  },
-  { hole: 2,  blow: 'E4', draw: 'G4', drawBends: ['F#4', 'F4'],           blowBends: [],            overblow: 'G#4',  overdraw: null  },
-  { hole: 3,  blow: 'G4', draw: 'B4', drawBends: ['A#4', 'A4', 'G#4'],    blowBends: [],            overblow: 'C5',   overdraw: null  },
+  { hole: 2,  blow: 'E4', draw: 'G4', drawBends: ['F#4', 'F4'],           blowBends: [],            overblow: null,   overdraw: null  },
+  { hole: 3,  blow: 'G4', draw: 'B4', drawBends: ['A#4', 'A4', 'G#4'],    blowBends: [],            overblow: null,   overdraw: null  },
   { hole: 4,  blow: 'C5', draw: 'D5', drawBends: ['C#5'],                 blowBends: [],            overblow: 'D#5',  overdraw: null  },
   { hole: 5,  blow: 'E5', draw: 'F5', drawBends: [],                      blowBends: [],            overblow: 'F#5',  overdraw: null  },
   { hole: 6,  blow: 'G5', draw: 'A5', drawBends: ['G#5'],                 blowBends: [],            overblow: 'A#5',  overdraw: null  },
-  // Holes 7–10: blow becomes higher than draw (Richter reversal). Bends apply to BLOW now.
+  // Holes 7–10: blow becomes higher than draw (Richter reversal). Bends apply
+  // to BLOW. Overdraws raise the HIGHER reed (blow) up by a semitone — they
+  // are NOT the same pitch as the blow-bend (which lowers it).
   { hole: 7,  blow: 'C6', draw: 'B5', drawBends: [],                      blowBends: [],            overblow: null,   overdraw: 'C#6' },
-  { hole: 8,  blow: 'E6', draw: 'D6', drawBends: [],                      blowBends: ['D#6'],       overblow: null,   overdraw: 'D#6' },
-  { hole: 9,  blow: 'G6', draw: 'F6', drawBends: [],                      blowBends: ['F#6'],       overblow: null,   overdraw: 'F#6' },
-  { hole: 10, blow: 'C7', draw: 'A6', drawBends: [],                      blowBends: ['B6', 'A#6'], overblow: null,   overdraw: 'A#6' },
+  { hole: 8,  blow: 'E6', draw: 'D6', drawBends: [],                      blowBends: ['D#6'],       overblow: null,   overdraw: 'F6'  },
+  { hole: 9,  blow: 'G6', draw: 'F6', drawBends: [],                      blowBends: ['F#6'],       overblow: null,   overdraw: 'G#6' },
+  { hole: 10, blow: 'C7', draw: 'A6', drawBends: [],                      blowBends: ['B6', 'A#6'], overblow: null,   overdraw: 'C#7' },
 ];
 
 function transposeNote(noteWithOct, semitones) {

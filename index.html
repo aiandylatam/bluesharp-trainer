@@ -344,19 +344,40 @@
     overflow-x: auto;
     box-shadow: 0 1px 3px rgba(0,0,0,0.04);
   }
-  /* Diatonic bend cell — gold border indicates "this note requires bending the reed".
-     Empty cells fill grid space without visible content (no bend at that depth). */
+  /* ============================================================
+     DIATONIC BEND HIERARCHY (visual difficulty cue)
+     ============================================================ */
+  /* Natural bends — subtle gold rim. Common technique on most diatonic harps. */
   .cell.bend {
-    box-shadow: inset 0 0 0 2px var(--accent-slide);
+    box-shadow: inset 0 0 0 1px var(--accent-slide);
+    opacity: 0.82;
+  }
+  .cell.bend.in-scale  { opacity: 1; }
+  .cell.bend.dimmed    { opacity: 0.30; filter: grayscale(60%); }
+
+  /* Overblows / overdraws — advanced technique. Distinct red rim + tiny
+     "OB"/"OD" indicator so they read as a different tier of difficulty. */
+  .cell.overbend {
+    box-shadow: inset 0 0 0 2px #c2410c;
     opacity: 0.92;
+    position: relative;
   }
-  .cell.bend.in-scale {
-    opacity: 1;
+  .cell.overbend::after {
+    content: 'OB';
+    position: absolute;
+    top: 2px; left: 4px;
+    font-size: 7px;
+    font-weight: 700;
+    color: #c2410c;
+    letter-spacing: 0.04em;
+    line-height: 1;
+    opacity: 0.85;
   }
-  .cell.bend.dimmed {
-    opacity: 0.32;
-    filter: grayscale(60%);
-  }
+  /* Holes 7–10 are overdraws — relabel the cue accordingly. */
+  .cell.overbend.draw::after { content: 'OD'; }
+  .cell.overbend.in-scale { opacity: 1; }
+  .cell.overbend.dimmed   { opacity: 0.40; filter: grayscale(40%); }
+
   .cell.cell-empty {
     background: transparent;
     border: 1px dashed rgba(0,0,0,0.07);
@@ -1556,20 +1577,27 @@ const NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
 // 10-hole diatonic harmonica, Richter tuning, base key of C.
 // Other keys are computed by semitone-transposing this template at runtime.
-// drawBends and blowBends list the bend notes from smallest bend to deepest.
-// Overblows / overdraws (advanced technique) are not modeled in v0.1.
+//
+//   drawBends / blowBends — natural bends (reed pulled down). Common technique.
+//   overblow              — advanced; lower reed pushed up to sound 1 semitone above
+//                           the natural draw. Applies to holes 1–6.
+//   overdraw              — advanced; reed pulled up on holes 7–10 to sound
+//                           1 semitone above the natural blow.
+//
+// Overblows/overdraws are a much harder technique than natural bends, so they
+// get a different visual treatment in the grid (red rim vs gold rim).
 const RICHTER_C = [
-  { hole: 1,  blow: 'C4', draw: 'D4', drawBends: ['C#4'],                 blowBends: []                  },
-  { hole: 2,  blow: 'E4', draw: 'G4', drawBends: ['F#4', 'F4'],           blowBends: []                  },
-  { hole: 3,  blow: 'G4', draw: 'B4', drawBends: ['A#4', 'A4', 'G#4'],    blowBends: []                  },
-  { hole: 4,  blow: 'C5', draw: 'D5', drawBends: ['C#5'],                 blowBends: []                  },
-  { hole: 5,  blow: 'E5', draw: 'F5', drawBends: [],                      blowBends: []                  },
-  { hole: 6,  blow: 'G5', draw: 'A5', drawBends: ['G#5'],                 blowBends: []                  },
+  { hole: 1,  blow: 'C4', draw: 'D4', drawBends: ['C#4'],                 blowBends: [],            overblow: 'D#4',  overdraw: null  },
+  { hole: 2,  blow: 'E4', draw: 'G4', drawBends: ['F#4', 'F4'],           blowBends: [],            overblow: 'G#4',  overdraw: null  },
+  { hole: 3,  blow: 'G4', draw: 'B4', drawBends: ['A#4', 'A4', 'G#4'],    blowBends: [],            overblow: 'C5',   overdraw: null  },
+  { hole: 4,  blow: 'C5', draw: 'D5', drawBends: ['C#5'],                 blowBends: [],            overblow: 'D#5',  overdraw: null  },
+  { hole: 5,  blow: 'E5', draw: 'F5', drawBends: [],                      blowBends: [],            overblow: 'F#5',  overdraw: null  },
+  { hole: 6,  blow: 'G5', draw: 'A5', drawBends: ['G#5'],                 blowBends: [],            overblow: 'A#5',  overdraw: null  },
   // Holes 7–10: blow becomes higher than draw (Richter reversal). Bends apply to BLOW now.
-  { hole: 7,  blow: 'C6', draw: 'B5', drawBends: [],                      blowBends: []                  },
-  { hole: 8,  blow: 'E6', draw: 'D6', drawBends: [],                      blowBends: ['D#6']             },
-  { hole: 9,  blow: 'G6', draw: 'F6', drawBends: [],                      blowBends: ['F#6']             },
-  { hole: 10, blow: 'C7', draw: 'A6', drawBends: [],                      blowBends: ['B6', 'A#6']       },
+  { hole: 7,  blow: 'C6', draw: 'B5', drawBends: [],                      blowBends: [],            overblow: null,   overdraw: 'C#6' },
+  { hole: 8,  blow: 'E6', draw: 'D6', drawBends: [],                      blowBends: ['D#6'],       overblow: null,   overdraw: 'D#6' },
+  { hole: 9,  blow: 'G6', draw: 'F6', drawBends: [],                      blowBends: ['F#6'],       overblow: null,   overdraw: 'F#6' },
+  { hole: 10, blow: 'C7', draw: 'A6', drawBends: [],                      blowBends: ['B6', 'A#6'], overblow: null,   overdraw: 'A#6' },
 ];
 
 function transposeNote(noteWithOct, semitones) {
@@ -1586,12 +1614,15 @@ function transposeNote(noteWithOct, semitones) {
 function getRichterHarpInKey(harpKey) {
   const offset = NOTES.indexOf(harpKey);
   if (offset < 0) return RICHTER_C;
+  const t = n => n ? transposeNote(n, offset) : null;
   return RICHTER_C.map(h => ({
     hole: h.hole,
-    blow: transposeNote(h.blow, offset),
-    draw: transposeNote(h.draw, offset),
-    drawBends: h.drawBends.map(n => transposeNote(n, offset)),
-    blowBends: h.blowBends.map(n => transposeNote(n, offset)),
+    blow: t(h.blow),
+    draw: t(h.draw),
+    drawBends: h.drawBends.map(n => t(n)),
+    blowBends: h.blowBends.map(n => t(n)),
+    overblow: t(h.overblow),
+    overdraw: t(h.overdraw),
   }));
 }
 
@@ -1613,22 +1644,28 @@ const SCALES = {
   'chromatic':        { name: 'Chromatic',        intervals: [0,1,2,3,4,5,6,7,8,9,10,11] },
 };
 
-// Diatonic layout: blow bends above blow, draw bends below draw.
+// Diatonic layout: overbends at the top (advanced, distinct red rim), then
+// blow bends above blow, hole number, draw, and draw bends below.
 // Each bend row maps to an index in hole.blowBends or hole.drawBends arrays.
 const ROW_DEFS = [
-  { label: 'Blow ♭♭',  actionKey: 'blowBend2', isBlow: true,  isBend: true,  bendIdx: 1 },
-  { label: 'Blow ♭',   actionKey: 'blowBend1', isBlow: true,  isBend: true,  bendIdx: 0 },
-  { label: 'Blow',     actionKey: 'blow',      isBlow: true,  isBend: false              },
-  { label: 'Hole',     actionKey: 'hole',      isBlow: null,  isBend: false              },
-  { label: 'Draw',     actionKey: 'draw',      isBlow: false, isBend: false              },
-  { label: 'Draw ♭',   actionKey: 'drawBend1', isBlow: false, isBend: true,  bendIdx: 0 },
-  { label: 'Draw ♭♭',  actionKey: 'drawBend2', isBlow: false, isBend: true,  bendIdx: 1 },
-  { label: 'Draw ♭♭♭', actionKey: 'drawBend3', isBlow: false, isBend: true,  bendIdx: 2 },
+  { label: 'Over',     actionKey: 'overbend',  isBlow: null,  isOverbend: true              },
+  { label: 'Blow ♭♭',  actionKey: 'blowBend2', isBlow: true,  isBend: true,  bendIdx: 1     },
+  { label: 'Blow ♭',   actionKey: 'blowBend1', isBlow: true,  isBend: true,  bendIdx: 0     },
+  { label: 'Blow',     actionKey: 'blow',      isBlow: true,  isBend: false                 },
+  { label: 'Hole',     actionKey: 'hole',      isBlow: null,  isBend: false                 },
+  { label: 'Draw',     actionKey: 'draw',      isBlow: false, isBend: false                 },
+  { label: 'Draw ♭',   actionKey: 'drawBend1', isBlow: false, isBend: true,  bendIdx: 0     },
+  { label: 'Draw ♭♭',  actionKey: 'drawBend2', isBlow: false, isBend: true,  bendIdx: 1     },
+  { label: 'Draw ♭♭♭', actionKey: 'drawBend3', isBlow: false, isBend: true,  bendIdx: 2     },
 ];
 
 function getCellNote(hole, row) {
   if (row.actionKey === 'blow') return hole.blow;
   if (row.actionKey === 'draw') return hole.draw;
+  if (row.isOverbend) {
+    // One row, two techniques: overblow lives on holes 1–6, overdraw on 7–10.
+    return hole.overblow || hole.overdraw || null;
+  }
   if (!row.isBend) return null;
   const arr = row.isBlow ? hole.blowBends : hole.drawBends;
   return arr[row.bendIdx] || null;
@@ -2283,8 +2320,13 @@ function renderHarmonica(mode) {
 
       const nName = noteName(note);
       const classes = ['cell', 'clickable'];
-      classes.push(row.isBlow ? 'blow' : 'draw');
+      // Overbends: holes 1–6 use overblow (blow technique), 7–10 use overdraw (draw technique).
+      // Color the background accordingly so the technique cues itself.
+      let isBlowAction = row.isBlow;
+      if (row.isOverbend) isBlowAction = !!hole.overblow;
+      classes.push(isBlowAction ? 'blow' : 'draw');
       if (row.isBend) classes.push('bend');
+      if (row.isOverbend) classes.push('overbend');
       if (mode === 'scales') {
         if (scaleNoteSet.has(nName)) {
           classes.push('in-scale');

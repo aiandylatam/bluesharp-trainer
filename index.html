@@ -346,26 +346,42 @@
   }
   /* ============================================================
      DIATONIC BEND HIERARCHY (visual difficulty cue)
+     All selectors prefixed with body.mode-scales to outrank the
+     generic body.mode-scales .cell.in-scale / .dimmed rules above.
      ============================================================ */
-  /* Natural bends — clear gold rim. Common technique, core blues vocabulary. */
-  .cell.bend {
+  /* Natural bends — clear gold rim, prominent. Core blues vocabulary,
+     readable even when out of the active scale. */
+  body.mode-scales .cell.bend {
     box-shadow: inset 0 0 0 2px var(--accent-slide);
-    opacity: 0.95;
   }
-  .cell.bend.in-scale  { opacity: 1; }
-  .cell.bend.dimmed    { opacity: 0.30; filter: grayscale(60%); }
+  body.mode-scales .cell.bend.dimmed {
+    opacity: 0.62;       /* was 0.28 — naturals stay readable when off-scale */
+    filter: none;
+    color: var(--ink-3);
+    background: transparent;
+    border-color: var(--accent-slide-soft);
+  }
 
-  /* Overblows / overdraws — advanced technique, rare. Made deliberately
-     subtle (dashed thin rim, lower opacity, no badge) so they recede until
-     you're actually looking for them. */
-  .cell.overbend {
+  /* Overblows / overdraws — advanced technique. Deliberately ghostly:
+     no cream background, dashed faint-red rim, low opacity, low text
+     contrast. Should recede unless you're specifically hunting them. */
+  body.mode-scales .cell.overbend,
+  body.mode-scales .cell.overbend.in-scale,
+  body.mode-scales .cell.overbend.tonic {
+    background: transparent;
     box-shadow: none;
-    border: 1px dashed rgba(194, 65, 12, 0.45);
-    opacity: 0.55;
-    position: relative;
+    border: 1px dashed rgba(194, 65, 12, 0.40);
+    color: var(--ink-4);
+    opacity: 0.45;
   }
-  .cell.overbend.in-scale { opacity: 0.85; border-color: rgba(194, 65, 12, 0.7); }
-  .cell.overbend.dimmed   { opacity: 0.18; filter: grayscale(50%); }
+  body.mode-scales .cell.overbend.in-scale {
+    opacity: 0.65;
+    border-color: rgba(194, 65, 12, 0.6);
+    color: var(--ink-3);
+  }
+  body.mode-scales .cell.overbend.dimmed {
+    opacity: 0.18;
+  }
 
   .cell.cell-empty {
     background: transparent;

@@ -1036,12 +1036,20 @@
   <div id="mode-scales">
     <div class="controls">
       <div class="control-group">
-        <label>Key</label>
-        <select id="scale-key"></select>
+        <label>Harp Key</label>
+        <select id="harp-key-main"></select>
+      </div>
+      <div class="control-group">
+        <label>Position</label>
+        <select id="position-main"></select>
       </div>
       <div class="control-group">
         <label>Scale</label>
         <select id="scale-type"></select>
+      </div>
+      <div class="control-group">
+        <label>Playing in</label>
+        <div id="effective-key-display" class="info" style="font-weight:600;color:var(--ink);font-family:var(--font-mono);font-size:13px;padding:9px 0;letter-spacing:0.5px"></div>
       </div>
       <div class="control-group">
         <label>Notes</label>
@@ -1464,14 +1472,28 @@ function onHarpKeyChange(key) {
   HARMONICA = getRichterHarpInKey(key);
   applyTweaks(tweaks);
   persistTweaks();
+  // Sync both selectors (main UI + Settings panel mirror)
+  const main = document.getElementById('harp-key-main');
+  if (main && main.value !== key) main.value = key;
+  const settings = document.getElementById('tweak-harp-key');
+  if (settings && settings.value !== key) settings.value = key;
   if (typeof renderHarmonica === 'function') renderHarmonica('scales');
+  if (typeof renderScaleNotesDisplay === 'function') renderScaleNotesDisplay();
+  if (typeof renderEffectiveKeyDisplay === 'function') renderEffectiveKeyDisplay();
+  if (typeof renderScalesStaff === 'function') renderScalesStaff();
 }
 function onPositionChange(pos) {
   tweaks.position = parseInt(pos) || 1;
   applyTweaks(tweaks);
   persistTweaks();
-  if (typeof renderScaleNotesDisplay === 'function') renderScaleNotesDisplay();
+  const main = document.getElementById('position-main');
+  if (main && parseInt(main.value) !== tweaks.position) main.value = tweaks.position;
+  const settings = document.getElementById('tweak-position');
+  if (settings && parseInt(settings.value) !== tweaks.position) settings.value = tweaks.position;
   if (typeof renderHarmonica === 'function') renderHarmonica('scales');
+  if (typeof renderScaleNotesDisplay === 'function') renderScaleNotesDisplay();
+  if (typeof renderEffectiveKeyDisplay === 'function') renderEffectiveKeyDisplay();
+  if (typeof renderScalesStaff === 'function') renderScalesStaff();
 }
 document.getElementById('tweak-pitch').addEventListener('input', e => {
   let v = parseInt(e.target.value);
@@ -2237,13 +2259,8 @@ function renderHarmonica(mode) {
   const container = document.getElementById(containerId);
   if (!container) return;
 
-  // Compute the "effective scale tonic" for position playing.
-  // 1st position → harp key itself. 2nd position → V (perfect 5th up = +7 semis).
-  // 3rd → ii (+2). 4th → vi (+9). 5th → iii (+4). 12th → IV (+5).
-  const POSITION_OFFSET = { 1: 0, 2: 7, 3: 2, 4: 9, 5: 4, 12: 5 };
-  const harpRootIdx = NOTES.indexOf(tweaks.harpKey);
-  const posOffset = POSITION_OFFSET[tweaks.position] || 0;
-  const effectiveTonic = NOTES[(harpRootIdx + posOffset + 12) % 12];
+  // Effective tonic = harp key transposed by the current position's offset.
+  const effectiveTonic = (typeof getEffectiveTonic === 'function') ? getEffectiveTonic() : tweaks.harpKey;
 
   let scaleNoteSet = null, tonicName = null;
   if (mode === 'scales') {
@@ -2300,13 +2317,66 @@ function renderHarmonica(mode) {
 // =============================================================
 // SCALES MODE
 // =============================================================
+// Position metadata — name (with cross-harp / slant aliases) + semitone offset
+// from the harp's key. The "playing in" key = NOTES[(harpRootIdx + offset) % 12].
+const POSITIONS = [
+  { value: 1,  label: '1st — Straight harp',  offset: 0,  hint: 'Major key, same as harp' },
+  { value: 2,  label: '2nd — Cross harp',     offset: 7,  hint: 'Blues / Mixolydian, perfect 5th up' },
+  { value: 3,  label: '3rd — Slant harp',     offset: 2,  hint: 'Dorian, whole step up' },
+  { value: 4,  label: '4th position',          offset: 9,  hint: 'Natural minor' },
+  { value: 5,  label: '5th position',          offset: 4,  hint: 'Phrygian, major 3rd up' },
+  { value: 12, label: '12th position',         offset: 5,  hint: 'Lydian / IV, 4th up' },
+];
+
+function getEffectiveTonic() {
+  const harpIdx = NOTES.indexOf(tweaks.harpKey);
+  const pos = POSITIONS.find(p => p.value === tweaks.position) || POSITIONS[0];
+  return NOTES[((harpIdx + pos.offset) % 12 + 12) % 12];
+}
+
 function renderScaleControls() {
-  const keySel = document.getElementById('scale-key');
-  keySel.innerHTML = NOTES.map(n => `<option value="${n}" ${n===selectedKey?'selected':''}>${n}</option>`).join('');
-  keySel.onchange = e => { selectedKey = e.target.value; pulseScale(); renderHarmonica('scales'); renderScaleNotesDisplay(); renderScalesStaff(); };
+  // Harp Key (main UI mirror of the Settings dropdown)
+  const harpSel = document.getElementById('harp-key-main');
+  harpSel.innerHTML = NOTES.map(n => {
+    const label = n === 'C#' ? 'C♯/D♭' : n === 'D#' ? 'D♯/E♭' : n === 'F#' ? 'F♯/G♭' :
+                  n === 'G#' ? 'G♯/A♭' : n === 'A#' ? 'A♯/B♭' : n;
+    return `<option value="${n}" ${n===tweaks.harpKey?'selected':''}>${label}</option>`;
+  }).join('');
+  harpSel.onchange = e => onHarpKeyChange(e.target.value);
+
+  // Position
+  const posSel = document.getElementById('position-main');
+  posSel.innerHTML = POSITIONS.map(p =>
+    `<option value="${p.value}" ${p.value===tweaks.position?'selected':''}>${p.label}</option>`
+  ).join('');
+  posSel.onchange = e => onPositionChange(e.target.value);
+
+  // Scale type
   const typeSel = document.getElementById('scale-type');
-  typeSel.innerHTML = Object.entries(SCALES).map(([k,v]) => `<option value="${k}" ${k===selectedScale?'selected':''}>${v.name}</option>`).join('');
-  typeSel.onchange = e => { selectedScale = e.target.value; pulseScale(); renderHarmonica('scales'); renderScaleNotesDisplay(); renderScalesStaff(); };
+  typeSel.innerHTML = Object.entries(SCALES).map(([k,v]) =>
+    `<option value="${k}" ${k===selectedScale?'selected':''}>${v.name}</option>`
+  ).join('');
+  typeSel.onchange = e => {
+    selectedScale = e.target.value;
+    pulseScale();
+    renderHarmonica('scales');
+    renderScaleNotesDisplay();
+    renderEffectiveKeyDisplay();
+    renderScalesStaff();
+  };
+  // Mirror selections into the Settings dropdowns too
+  const settingsHarp = document.getElementById('tweak-harp-key');
+  if (settingsHarp) settingsHarp.value = tweaks.harpKey;
+  const settingsPos = document.getElementById('tweak-position');
+  if (settingsPos) settingsPos.value = tweaks.position;
+}
+
+function renderEffectiveKeyDisplay() {
+  const el = document.getElementById('effective-key-display');
+  if (!el) return;
+  const tonic = getEffectiveTonic();
+  const scaleName = SCALES[selectedScale]?.name || '';
+  el.innerHTML = `<span style="color:var(--accent-slide);font-weight:700">${tonic}</span> <span style="opacity:0.7">${scaleName}</span>`;
 }
 function pulseScale() {
   const h = document.getElementById('harmonica-scales');
@@ -2316,10 +2386,10 @@ function pulseScale() {
   setTimeout(() => { h.style.boxShadow = ''; }, 400);
 }
 function renderScaleNotesDisplay() {
-  document.getElementById('scale-notes-display').textContent = getScaleNotes(selectedKey, selectedScale).join('  ·  ');
+  document.getElementById('scale-notes-display').textContent = getScaleNotes(getEffectiveTonic(), selectedScale).join('  ·  ');
 }
 function getScaleStaffSequence() {
-  const notes = getScaleNotes(selectedKey, selectedScale);
+  const notes = getScaleNotes(getEffectiveTonic(), selectedScale);
   if (!notes.length) return [];
   const result = []; let lastMidi = -1;
   for (const n of notes) {
@@ -3338,6 +3408,7 @@ function populateSongSelect() {
 }
 populateSongSelect();
 renderScaleControls();
+renderEffectiveKeyDisplay();
 setMode('scales');
 document.querySelectorAll('.mode-tab').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
 document.getElementById('clear-btn').addEventListener('click', () => {

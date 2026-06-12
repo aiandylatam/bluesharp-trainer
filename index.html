@@ -347,36 +347,25 @@
   /* ============================================================
      DIATONIC BEND HIERARCHY (visual difficulty cue)
      ============================================================ */
-  /* Natural bends — subtle gold rim. Common technique on most diatonic harps. */
+  /* Natural bends — clear gold rim. Common technique, core blues vocabulary. */
   .cell.bend {
-    box-shadow: inset 0 0 0 1px var(--accent-slide);
-    opacity: 0.82;
+    box-shadow: inset 0 0 0 2px var(--accent-slide);
+    opacity: 0.95;
   }
   .cell.bend.in-scale  { opacity: 1; }
   .cell.bend.dimmed    { opacity: 0.30; filter: grayscale(60%); }
 
-  /* Overblows / overdraws — advanced technique. Distinct red rim + tiny
-     "OB"/"OD" indicator so they read as a different tier of difficulty. */
+  /* Overblows / overdraws — advanced technique, rare. Made deliberately
+     subtle (dashed thin rim, lower opacity, no badge) so they recede until
+     you're actually looking for them. */
   .cell.overbend {
-    box-shadow: inset 0 0 0 2px #c2410c;
-    opacity: 0.92;
+    box-shadow: none;
+    border: 1px dashed rgba(194, 65, 12, 0.45);
+    opacity: 0.55;
     position: relative;
   }
-  .cell.overbend::after {
-    content: 'OB';
-    position: absolute;
-    top: 2px; left: 4px;
-    font-size: 7px;
-    font-weight: 700;
-    color: #c2410c;
-    letter-spacing: 0.04em;
-    line-height: 1;
-    opacity: 0.85;
-  }
-  /* Holes 7–10 are overdraws — relabel the cue accordingly. */
-  .cell.overbend.draw::after { content: 'OD'; }
-  .cell.overbend.in-scale { opacity: 1; }
-  .cell.overbend.dimmed   { opacity: 0.40; filter: grayscale(40%); }
+  .cell.overbend.in-scale { opacity: 0.85; border-color: rgba(194, 65, 12, 0.7); }
+  .cell.overbend.dimmed   { opacity: 0.18; filter: grayscale(50%); }
 
   .cell.cell-empty {
     background: transparent;

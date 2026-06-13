@@ -2339,7 +2339,12 @@ function setStaffDetected(containerId, noteWithOct) {
   const c = document.getElementById(containerId); if (!c) return;
   c.querySelectorAll('.detected').forEach(el => el.classList.remove('detected'));
   if (!noteWithOct) return;
-  c.querySelectorAll(`[data-note="${noteWithOct}"]`).forEach(el => el.classList.add('detected'));
+  // Match by note name only (ignore octave): the staff shows one representative
+  // octave of each scale note, but the player may be in any octave on the harp.
+  const name = noteName(noteWithOct);
+  c.querySelectorAll('[data-note]').forEach(el => {
+    if (noteName(el.dataset.note) === name) el.classList.add('detected');
+  });
 }
 
 // =============================================================

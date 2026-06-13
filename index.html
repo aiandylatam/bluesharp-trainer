@@ -2309,20 +2309,21 @@ function renderStaff(containerId, noteEntries) {
     const accidental = m[2] || '';
     const step = noteStaffStep(entry.note);
     const y = staffStepY(step);
-    if (step < 0) for (let s = -2; s >= step; s -= 2) svg += `<line x1="${x-12}" x2="${x+12}" y1="${staffStepY(s)}" y2="${staffStepY(s)}" stroke="${lineColor}" stroke-width="0.8" opacity="0.5"/>`;
-    else if (step > 8) for (let s = 10; s <= step; s += 2) svg += `<line x1="${x-12}" x2="${x+12}" y1="${staffStepY(s)}" y2="${staffStepY(s)}" stroke="${lineColor}" stroke-width="0.8" opacity="0.5"/>`;
+    const op = entry.dimmed ? 0.28 : 1;
+    if (step < 0) for (let s = -2; s >= step; s -= 2) svg += `<line x1="${x-12}" x2="${x+12}" y1="${staffStepY(s)}" y2="${staffStepY(s)}" stroke="${lineColor}" stroke-width="0.8" opacity="${0.5 * op}"/>`;
+    else if (step > 8) for (let s = 10; s <= step; s += 2) svg += `<line x1="${x-12}" x2="${x+12}" y1="${staffStepY(s)}" y2="${staffStepY(s)}" stroke="${lineColor}" stroke-width="0.8" opacity="${0.5 * op}"/>`;
     const stemUp = step < 4;
     const stemX = stemUp ? x + 6 : x - 6;
     const stemY2 = stemUp ? y + 28 : y - 28;
-    svg += `<line x1="${stemX}" x2="${stemX}" y1="${y}" y2="${stemY2}" stroke="${noteColor}" stroke-width="1.2" opacity="0.7"/>`;
+    svg += `<line x1="${stemX}" x2="${stemX}" y1="${y}" y2="${stemY2}" stroke="${noteColor}" stroke-width="1.2" opacity="${0.7 * op}"/>`;
     if (accidental === '#') {
-      svg += `<g class="staff-accidental" data-idx="${entry.idx}" data-note="${entry.note}" transform="translate(${x - 18} ${y})" fill="${noteColor}" opacity="0.85"><path d="M-3.5,-6 L-3.5,5.5 M0.5,-7 L0.5,4.5 M-5,-2.5 L2,-3.5 M-5,1.5 L2,0.5" stroke="${noteColor}" stroke-width="1.2" fill="none" opacity="0.85"/></g>`;
+      svg += `<g class="staff-accidental" data-idx="${entry.idx}" data-note="${entry.note}" transform="translate(${x - 18} ${y})" fill="${noteColor}" opacity="${0.85 * op}"><path d="M-3.5,-6 L-3.5,5.5 M0.5,-7 L0.5,4.5 M-5,-2.5 L2,-3.5 M-5,1.5 L2,0.5" stroke="${noteColor}" stroke-width="1.2" fill="none" opacity="${0.85 * op}"/></g>`;
     } else if (accidental === 'b') {
-      svg += `<text class="staff-accidental" data-idx="${entry.idx}" data-note="${entry.note}" x="${x - 14}" y="${y + 5}" font-size="16" fill="${noteColor}" opacity="0.85" font-family="serif">♭</text>`;
+      svg += `<text class="staff-accidental" data-idx="${entry.idx}" data-note="${entry.note}" x="${x - 14}" y="${y + 5}" font-size="16" fill="${noteColor}" opacity="${0.85 * op}" font-family="serif">♭</text>`;
     }
-    svg += `<g class="staff-note" data-idx="${entry.idx}" data-note="${entry.note}" fill="${noteColor}"><ellipse cx="${x}" cy="${y}" rx="6.5" ry="4.8" transform="rotate(-22 ${x} ${y})"/></g>`;
-    svg += `<text class="staff-label" data-idx="${entry.idx}" data-note="${entry.note}" x="${x}" y="${labelY}" font-size="10" text-anchor="middle" fill="var(--ink-3)" font-family="JetBrains Mono, monospace" letter-spacing="0.5">${entry.note}</text>`;
-    if (entry.tabLabel) svg += `<text class="staff-tab-label" data-idx="${entry.idx}" data-note="${entry.note}" x="${x}" y="${tabLabelY}" font-size="11" text-anchor="middle" fill="var(--ink)" font-weight="600" font-family="JetBrains Mono, monospace">${entry.tabLabel}</text>`;
+    svg += `<g class="staff-note" data-idx="${entry.idx}" data-note="${entry.note}" fill="${noteColor}" opacity="${op}"><ellipse cx="${x}" cy="${y}" rx="6.5" ry="4.8" transform="rotate(-22 ${x} ${y})"/></g>`;
+    svg += `<text class="staff-label" data-idx="${entry.idx}" data-note="${entry.note}" x="${x}" y="${labelY}" font-size="10" text-anchor="middle" fill="var(--ink-3)" font-family="JetBrains Mono, monospace" letter-spacing="0.5" opacity="${op}">${entry.note}</text>`;
+    if (entry.tabLabel) svg += `<text class="staff-tab-label" data-idx="${entry.idx}" data-note="${entry.note}" x="${x}" y="${tabLabelY}" font-size="11" text-anchor="middle" fill="var(--ink)" font-weight="600" font-family="JetBrains Mono, monospace" opacity="${op}">${entry.tabLabel}</text>`;
     if (entry.degree) svg += `<text x="${x}" y="${tabLabelY + 12}" font-size="9" text-anchor="middle" fill="var(--ink-3)" font-family="JetBrains Mono, monospace" letter-spacing="0.5">${entry.degree}</text>`;
   });
   svg += '</svg>';
@@ -2527,11 +2528,23 @@ function getScaleStaffSequence() {
   return result;
 }
 function renderScalesStaff() {
-  const seq = getScaleStaffSequence();
-  const entries = seq.map((note, idx) => {
+  // Collect all unique blow+draw notes from the current harp, sorted by pitch.
+  const scaleSet = new Set(getScaleNotes(getEffectiveTonic(), selectedScale));
+  const seen = new Set();
+  const allNotes = [];
+  for (const hole of HARMONICA) {
+    for (const note of [hole.blow, hole.draw]) {
+      if (note && !seen.has(note)) { seen.add(note); allNotes.push(note); }
+    }
+  }
+  allNotes.sort((a, b) => noteToMidi(a) - noteToMidi(b));
+
+  const entries = allNotes.map((note, idx) => {
     const pos = findHarmonicaPosition(note);
-    const degree = scaleDegreeFor(noteName(note), selectedKey, selectedScale);
-    return { note, tabLabel: pos ? pos.notation : '—', degree, idx };
+    const nName = noteName(note);
+    const inScale = scaleSet.has(nName);
+    const degree = inScale ? scaleDegreeFor(nName, getEffectiveTonic(), selectedScale) : '';
+    return { note, tabLabel: pos ? pos.notation : '—', degree, idx, dimmed: !inScale };
   });
   renderStaff('staff-scales', entries);
 }

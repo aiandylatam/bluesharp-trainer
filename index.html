@@ -2112,6 +2112,13 @@ function autoCorrelate(buf, sampleRate) {
   while (d < SIZE - 1 && c[d] > c[d + 1]) d++;
   let maxval = -1, maxpos = -1;
   for (let i = d; i < SIZE; i++) if (c[i] > maxval) { maxval = c[i]; maxpos = i; }
+  // Octave-error correction (ACF2+): harmonicas produce strong 2nd harmonics that
+  // can make the half-period (2× freq) appear stronger than the fundamental.
+  // Prefer the earliest peak that is at least 80% as strong as the global max —
+  // that peak corresponds to the longest period = lowest frequency = true fundamental.
+  for (let i = d; i < maxpos; i++) {
+    if (c[i] >= 0.8 * maxval) { maxpos = i; break; }
+  }
   let T0 = maxpos;
   if (T0 <= 0) return -1;
   const x1 = c[T0 - 1] || 0, x2 = c[T0], x3 = c[T0 + 1] || 0;

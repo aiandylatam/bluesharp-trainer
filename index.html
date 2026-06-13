@@ -1335,6 +1335,13 @@
 <div class="tweaks-panel" id="tweaks-panel">
   <h3>Settings</h3>
   <div class="tweak-row">
+    <label>Tuning</label>
+    <select id="tweak-tuning" onchange="onTuningChange(this.value)" style="width:100%;padding:8px 10px;border:1px solid var(--hairline-strong);border-radius:6px;background:var(--panel);font-family:var(--font-mono);font-size:12px;color:var(--ink);cursor:pointer">
+      <option value="richter">Richter (standard)</option>
+      <option value="wilde">Wilde (blues / minor pentatonic)</option>
+    </select>
+  </div>
+  <div class="tweak-row">
     <label>Harp Key</label>
     <select id="tweak-harp-key" onchange="onHarpKeyChange(this.value)" style="width:100%;padding:8px 10px;border:1px solid var(--hairline-strong);border-radius:6px;background:var(--panel);font-family:var(--font-mono);font-size:12px;color:var(--ink);cursor:pointer">
       <option value="C">C  (most common, "key of C harp")</option>
@@ -1436,7 +1443,8 @@ const TWEAKS_DEFAULTS = /*EDITMODE-BEGIN*/{
   "harpKey": "C",
   "position": 1,
   "pitch": 440,
-  "tone": "harmonica"
+  "tone": "harmonica",
+  "tuning": "richter"
 }/*EDITMODE-END*/;
 const TWEAKS_STORAGE_KEY = 'bluesharpTweaks';
 
@@ -1462,9 +1470,12 @@ function applyTweaks(t) {
   const pitchInput = document.getElementById('tweak-pitch');
   if (pitchInput) pitchInput.value = t.pitch;
   document.querySelectorAll('.pitch-presets button').forEach(b => b.classList.toggle('active', parseInt(b.dataset.pitch) === t.pitch));
+  const tuningSel = document.getElementById('tweak-tuning');
+  if (tuningSel && tuningSel.value !== (t.tuning || 'richter')) tuningSel.value = t.tuning || 'richter';
   // Update header labels
+  const tuningLabel = t.tuning === 'wilde' ? 'Wilde' : 'Richter';
   const hLabel = document.getElementById('header-harmonica-label');
-  if (hLabel) hLabel.textContent = `Hohner Special 20 · 10-hole · Key of ${t.harpKey}`;
+  if (hLabel) hLabel.textContent = `10-hole · ${tuningLabel} · Key of ${t.harpKey}`;
   const pLabel = document.getElementById('header-pitch-label');
   if (pLabel) pLabel.textContent = `A4 = ${t.pitch}Hz`;
 }
@@ -1499,7 +1510,7 @@ setTimeout(() => {
 // Harp key dropdown: transposes the whole layout by N semitones.
 function onHarpKeyChange(key) {
   tweaks.harpKey = key;
-  HARMONICA = getRichterHarpInKey(key);
+  HARMONICA = getHarpInKey(tweaks.tuning || 'richter', key);
   applyTweaks(tweaks);
   persistTweaks();
   // Sync both selectors (main UI + Settings panel mirror)
@@ -1507,6 +1518,18 @@ function onHarpKeyChange(key) {
   if (main && main.value !== key) main.value = key;
   const settings = document.getElementById('tweak-harp-key');
   if (settings && settings.value !== key) settings.value = key;
+  if (typeof renderHarmonica === 'function') renderHarmonica('scales');
+  if (typeof renderScaleNotesDisplay === 'function') renderScaleNotesDisplay();
+  if (typeof renderEffectiveKeyDisplay === 'function') renderEffectiveKeyDisplay();
+  if (typeof renderScalesStaff === 'function') renderScalesStaff();
+}
+function onTuningChange(tuning) {
+  tweaks.tuning = tuning;
+  HARMONICA = getHarpInKey(tuning, tweaks.harpKey || 'C');
+  applyTweaks(tweaks);
+  persistTweaks();
+  const sel = document.getElementById('tweak-tuning');
+  if (sel && sel.value !== tuning) sel.value = tuning;
   if (typeof renderHarmonica === 'function') renderHarmonica('scales');
   if (typeof renderScaleNotesDisplay === 'function') renderScaleNotesDisplay();
   if (typeof renderEffectiveKeyDisplay === 'function') renderEffectiveKeyDisplay();
@@ -1625,11 +1648,27 @@ function transposeNote(noteWithOct, semitones) {
   return newName + newOct;
 }
 
-function getRichterHarpInKey(harpKey) {
+// Wilde Tuning (C): holes 1-5 same as Richter; holes 6-9 repeat 2-5 an octave up;
+// hole 10 has its reeds swapped (A6 blow, C7 draw). No blow bends, no overblows/overdraws.
+// All bends are draw bends, root note lands on draw in every octave.
+const WILDE_C = [
+  { hole: 1,  blow: 'C4', draw: 'D4', drawBends: ['C#4'],                  blowBends: [], overblow: null, overdraw: null },
+  { hole: 2,  blow: 'E4', draw: 'G4', drawBends: ['F#4', 'F4'],            blowBends: [], overblow: null, overdraw: null },
+  { hole: 3,  blow: 'G4', draw: 'B4', drawBends: ['A#4', 'A4', 'G#4'],     blowBends: [], overblow: null, overdraw: null },
+  { hole: 4,  blow: 'C5', draw: 'D5', drawBends: ['C#5'],                  blowBends: [], overblow: null, overdraw: null },
+  { hole: 5,  blow: 'E5', draw: 'F5', drawBends: [],                       blowBends: [], overblow: null, overdraw: null },
+  { hole: 6,  blow: 'E5', draw: 'G5', drawBends: ['F#5', 'F5'],            blowBends: [], overblow: null, overdraw: null },
+  { hole: 7,  blow: 'G5', draw: 'B5', drawBends: ['A#5', 'A5', 'G#5'],     blowBends: [], overblow: null, overdraw: null },
+  { hole: 8,  blow: 'C6', draw: 'D6', drawBends: ['C#6'],                  blowBends: [], overblow: null, overdraw: null },
+  { hole: 9,  blow: 'E6', draw: 'G6', drawBends: ['F#6', 'F6'],            blowBends: [], overblow: null, overdraw: null },
+  { hole: 10, blow: 'A6', draw: 'C7', drawBends: ['B6', 'A#6'],            blowBends: [], overblow: null, overdraw: null },
+];
+
+function transposeTemplate(template, harpKey) {
   const offset = NOTES.indexOf(harpKey);
-  if (offset < 0) return RICHTER_C;
+  if (offset === 0) return template;
   const t = n => n ? transposeNote(n, offset) : null;
-  return RICHTER_C.map(h => ({
+  return template.map(h => ({
     hole: h.hole,
     blow: t(h.blow),
     draw: t(h.draw),
@@ -1640,7 +1679,19 @@ function getRichterHarpInKey(harpKey) {
   }));
 }
 
-let HARMONICA = getRichterHarpInKey(tweaks.harpKey || 'C');
+function getRichterHarpInKey(harpKey) {
+  return transposeTemplate(RICHTER_C, harpKey);
+}
+
+function getWildeHarpInKey(harpKey) {
+  return transposeTemplate(WILDE_C, harpKey);
+}
+
+function getHarpInKey(tuning, harpKey) {
+  return tuning === 'wilde' ? getWildeHarpInKey(harpKey) : getRichterHarpInKey(harpKey);
+}
+
+let HARMONICA = getHarpInKey(tweaks.tuning || 'richter', tweaks.harpKey || 'C');
 
 const SCALES = {
   'major':            { name: 'Major',            intervals: [0, 2, 4, 5, 7, 9, 11] },

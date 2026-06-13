@@ -2425,6 +2425,8 @@ function renderHarmonica(mode) {
   container.querySelectorAll('.cell.clickable').forEach(el => {
     el.addEventListener('click', () => {
       playTone(el.dataset.note);
+      const staffId = STAFF_ID_BY_MODE[currentMode];
+      if (staffId) setStaffDetected(staffId, el.dataset.note);
     });
   });
 }

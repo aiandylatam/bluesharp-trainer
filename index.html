@@ -2536,7 +2536,8 @@ function renderScalesStaff() {
   const seen = new Set();
   const allNotes = [];
   for (const hole of HARMONICA) {
-    for (const note of [hole.blow, hole.draw]) {
+    const candidates = [hole.blow, hole.draw, ...hole.drawBends, ...hole.blowBends];
+    for (const note of candidates) {
       if (note && !seen.has(note)) { seen.add(note); allNotes.push(note); }
     }
   }

@@ -1429,13 +1429,6 @@
       <div class="swatch" data-accent="#a21caf" style="background:#a21caf" title="Plum"></div>
     </div>
   </div>
-  <div class="tweak-row">
-    <label>Density</label>
-    <div class="seg" id="tweak-density">
-      <button data-density="comfortable" class="active">Comfortable</button>
-      <button data-density="compact">Compact</button>
-    </div>
-  </div>
 </div>
 
 <script>
@@ -1460,9 +1453,8 @@ function applyTweaks(t) {
   const hex = t.accent.replace('#','');
   const r = parseInt(hex.slice(0,2),16), g = parseInt(hex.slice(2,4),16), b = parseInt(hex.slice(4,6),16);
   document.documentElement.style.setProperty('--accent-slide-soft', `rgba(${r},${g},${b},0.16)`);
-  document.documentElement.dataset.density = t.density;
+  document.documentElement.dataset.density = 'compact';
   document.querySelectorAll('#tweak-accent .swatch').forEach(s => s.classList.toggle('active', s.dataset.accent === t.accent));
-  document.querySelectorAll('#tweak-density button').forEach(b => b.classList.toggle('active', b.dataset.density === t.density));
   const harpKeySel = document.getElementById('tweak-harp-key');
   if (harpKeySel && harpKeySel.value !== t.harpKey) harpKeySel.value = t.harpKey;
   const posSel = document.getElementById('tweak-position');
@@ -1489,7 +1481,6 @@ document.getElementById('tweaks-toggle').addEventListener('click', () => {
   document.getElementById('tweaks-panel').classList.toggle('open');
 });
 document.querySelectorAll('#tweak-accent .swatch').forEach(s => s.addEventListener('click', () => { tweaks.accent = s.dataset.accent; applyTweaks(tweaks); persistTweaks(); }));
-document.querySelectorAll('#tweak-density button').forEach(b => b.addEventListener('click', () => { tweaks.density = b.dataset.density; applyTweaks(tweaks); persistTweaks(); }));
 // Harp key + position handlers wired after DOM has the new <select>s (see below).
 document.getElementById('tweak-tone-select').addEventListener('change', e => {
   tweaks.tone = e.target.value;
